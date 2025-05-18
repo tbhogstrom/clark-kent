@@ -1,0 +1,808 @@
+# Article production system for processed briefs
+async def produce_articles_from_processed_briefs():
+    """
+    Creates complete articles with change logs from the processed briefs.
+    """
+    print("\n" + "=" * 70)
+    print("MARYJOBINS ARTICLE PRODUCTION FROM PROCESSED BRIEFS")
+    print("=" * 70)
+    
+    # Find the processed briefs directory
+    import os
+    from datetime import datetime
+    import re
+    import json
+    
+    processed_dirs = [d for d in os.listdir('.') if d.startswith('MaryJobins_Processed_Briefs_20250518_13571')]
+    if not processed_dirs:
+        print("No processed briefs directory found. Please run the brief processing step first.")
+        return None
+    
+    # Get the most recent directory
+    briefs_directory = max(processed_dirs)
+    print(f"Using processed briefs from: {briefs_directory}")
+    
+    # Create a directory for the final articles
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    articles_directory = f"MaryJobins_Complete_Articles_{timestamp}"
+    
+    if not os.path.exists(articles_directory):
+        os.makedirs(articles_directory)
+    
+    # Find all article directories in the briefs directory - modified to find all numeric prefixes
+    article_dirs = [d for d in os.listdir(briefs_directory) if re.match(r'^\d+_', d) and os.path.isdir(os.path.join(briefs_directory, d))]
+    article_dirs.sort()  # Sort by number prefix
+    
+    # Select a subset of articles to process (first 5)
+    selected_article_dirs = article_dirs
+    
+    print(f"Found {len(article_dirs)} article briefs, selecting {len(selected_article_dirs)} for processing")
+    
+    # Create agents for the content production process
+    writer_agent = Agent(
+        name="content_writer",
+        model="gemini-1.5-flash",
+        description="Expert content writer for MaryJobins",
+        instruction="""You are an expert content writer specializing in creating high-quality articles for MaryJobins, a personalized job search aggregator.
+
+Your task is to create well-researched, engaging, and informative content based on detailed article briefs.
+
+Your writing should:
+- Be well-structured and easy to follow
+- Include relevant examples and data points
+- Have a friendly, approachable tone while maintaining professionalism
+- Incorporate the "Mary Poppins-inspired" brand voice when appropriate
+- Include proper headings, subheadings, and formatting
+- Target the specified audience with appropriate language and examples
+- Include actionable takeaways and clear calls-to-action
+- Naturally incorporate SEO keywords without keyword stuffing
+- Highlight relevant MaryJobins features when appropriate
+
+Follow the brief carefully, covering all required points while maintaining an engaging flow.
+""",
+        tools=[research_topic, create_outline],
+    )
+    
+    editor_agent = Agent(
+        name="content_editor",
+        model="gemini-1.5-flash",
+        description="Expert content editor for MaryJobins",
+        instruction="""You are an expert content editor specializing in refining articles for MaryJobins, a personalized job search aggregator.
+
+Your task is to review and improve draft articles, ensuring they meet the highest quality standards.
+
+When editing, you should:
+- Improve clarity, structure, and flow
+- Enhance readability with better transitions and connections
+- Correct any grammatical or stylistic issues
+- Ensure all key points from the brief are covered effectively
+- Verify that the tone matches the "Mary Poppins-inspired" brand voice
+- Check that headers and subheaders are strategic and SEO-friendly
+- Verify that calls-to-action are compelling and strategically placed
+- Ensure the content properly highlights MaryJobins features when relevant
+- Remove any fluff, redundancy, or unclear explanations
+- Suggest additional examples or data points if needed
+
+In addition to editing the content, you must also provide:
+1. A detailed list of all changes made
+2. The specific improvements to structure, flow, and clarity
+3. Any additions or deletions you made and why
+
+FORMAT YOUR RESPONSE AS:
+
+[CHANGELOG]
+(List all changes made and why)
+[/CHANGELOG]
+
+[EDITED ARTICLE]
+(The complete edited article)
+[/EDITED ARTICLE]
+""",
+        tools=[edit_content],
+    )
+    
+    feedback_agent = Agent(
+        name="feedback_analyst",
+        model="gemini-1.5-flash",
+        description="Expert content strategy analyst for MaryJobins",
+        instruction="""You are an expert content strategy analyst specializing in evaluating articles for MaryJobins, a personalized job search aggregator.
+
+Your task is to provide detailed, constructive feedback on articles to help improve them further.
+
+Your feedback should include:
+
+1. STRENGTHS ASSESSMENT:
+   - Identify what works well in the article
+   - Highlight particularly effective sections, examples, or phrasings
+   - Note where the article successfully addresses the brief requirements
+
+2. IMPROVEMENT OPPORTUNITIES:
+   - Identify weaknesses or gaps in the content
+   - Point out sections that could be clearer, more engaging, or more impactful
+   - Suggest specific additions or modifications that would strengthen the piece
+
+3. STRATEGIC RECOMMENDATIONS:
+   - Evaluate whether the content effectively supports MaryJobins' business goals
+   - Assess if the article properly targets the intended audience
+   - Suggest ways to better highlight product features or differentiate from competitors
+   - Provide ideas for enhancing the call-to-action
+
+4. SPECIFIC ACTION ITEMS:
+   - List 3-5 concrete, actionable changes that would most improve the article
+   - Include examples or suggested rewrites when appropriate
+
+Be candid but constructive - focus on how to make the content more effective rather than just pointing out flaws.
+""",
+        tools=[],
+    )
+    
+    improver_agent = Agent(
+        name="content_improver",
+        model="gemini-1.5-flash",
+        description="Expert content improver for MaryJobins",
+        instruction="""You are an expert content improver specializing in finalizing articles for MaryJobins, a personalized job search aggregator.
+
+Your task is to take edited content and feedback, then make significant improvements to create the final version of the article.
+
+When improving content, you should:
+- Implement all the suggestions from the editor and feedback analyst
+- Make substantial improvements to structure, flow, and clarity
+- Enhance the introduction and conclusion for maximum impact
+- Improve transitions between sections for a more cohesive reading experience
+- Add compelling examples, statistics, or quotes where appropriate
+- Ensure headings and subheadings are optimized for both readability and SEO
+- Strengthen calls-to-action to drive user engagement
+- Polish the overall tone to match the "Mary Poppins-inspired" brand voice
+- Ensure technical accuracy while maintaining accessibility for the target audience
+- Format the content professionally with proper markdown
+
+In addition to the improved content, you must also provide:
+1. A detailed changelog listing all changes made based on the feedback
+2. Explanation of how you addressed each of the key feedback points
+3. Any additional improvements you made beyond the feedback suggestions
+
+FORMAT YOUR RESPONSE AS:
+
+[CHANGELOG]
+(List all improvements made and how they address the feedback)
+[/CHANGELOG]
+
+[IMPROVED ARTICLE]
+(The complete improved article)
+[/IMPROVED ARTICLE]
+""",
+        tools=[format_content],
+    )
+    
+    changelog_agent = Agent(
+        name="changelog_agent",
+        model="gemini-1.5-flash", 
+        description="Expert content change tracker for MaryJobins",
+        instruction="""You are an expert in analyzing content changes and creating detailed changelogs for MaryJobins articles.
+
+Your task is to compare different versions of an article and document all significant changes between them.
+
+When creating a changelog, you should:
+1. Compare the structure, headings, and overall organization
+2. Identify added, removed, or modified sections
+3. Note improvements in clarity, tone, and readability
+4. Highlight enhanced examples, statistics, or quotes
+5. Document strengthened calls-to-action
+6. Note any changes in how MaryJobins features are presented
+7. Identify improvements in SEO optimization
+
+Your changelog should be detailed, specific, and well-organized, making it easy to understand how the article evolved through each iteration.
+
+Format the changelog with clear sections, bullet points, and before/after examples when relevant.
+""",
+        tools=[]
+    )
+    
+    # Create session service
+    session_service = InMemorySessionService()
+    APP_NAME = "maryjobins_articles_production"
+    USER_ID = "user_articles_production"
+    
+    # Set iterations for each article
+    num_iterations = 2
+    
+    # Process each selected article
+    for article_dir in selected_article_dirs:
+        # Extract article info
+        article_path = os.path.join(briefs_directory, article_dir)
+        brief_path = os.path.join(article_path, "00_brief.md")
+        
+        if not os.path.exists(brief_path):
+            print(f"No brief found for {article_dir}, skipping...")
+            continue
+        
+        # Read the brief
+        with open(brief_path, 'r') as f:
+            article_brief = f.read()
+        
+        # Extract article title
+        title_match = re.search(r'#\s*Article:?\s*(.*?)(?:\n|$)', article_brief)
+        if title_match:
+            article_title = title_match.group(1).strip()
+        else:
+            title_match = re.search(r'#\s*Brief for:?\s*(.*?)(?:\n|$)', article_brief)
+            if title_match:
+                article_title = title_match.group(1).strip()
+            else:
+                article_title = article_dir.split('_', 1)[1].replace('_', ' ')
+        
+        print(f"\n\nProcessing Article: {article_title}")
+        print("-" * 50)
+        
+        # Create sanitized filename
+        article_filename = re.sub(r'[^\w\s-]', '', article_title).strip().replace(' ', '_')
+        
+        # Create article directory in the output folder
+        output_article_dir = os.path.join(articles_directory, f"{article_dir.split('_')[0]}_{article_filename}")
+        os.makedirs(output_article_dir)
+        
+        # Save the brief
+        with open(os.path.join(output_article_dir, "00_brief.md"), "w") as f:
+            f.write(article_brief)
+        
+        # Create a comprehensive changelog for this article
+        changelog = [f"# Complete Change Log: {article_title}\n\n"]
+        changelog.append(f"## Article Brief\n\n{article_brief}\n\n")
+        changelog.append("## Development History\n\n")
+        
+        # Track all versions for the final changelog
+        all_versions = {
+            "brief": article_brief,
+            "drafts": [],
+            "edits": [],
+            "feedback": [],
+            "improvements": []
+        }
+        
+        # Process iterations
+        for iteration in range(num_iterations):
+            changelog.append(f"### Iteration {iteration+1}\n\n")
+            print(f"Starting iteration {iteration+1}/{num_iterations}")
+            
+            # Create sessions for this article and iteration
+            writer_session_id = f"session_writer_{article_dir}_{iteration}"
+            editor_session_id = f"session_editor_{article_dir}_{iteration}"
+            feedback_session_id = f"session_feedback_{article_dir}_{iteration}"
+            improver_session_id = f"session_improver_{article_dir}_{iteration}"
+            changelog_session_id = f"session_changelog_{article_dir}_{iteration}"
+            
+            session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=writer_session_id)
+            session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=editor_session_id)
+            session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=feedback_session_id)
+            session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=improver_session_id)
+            session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=changelog_session_id)
+            
+            writer_runner = Runner(agent=writer_agent, app_name=APP_NAME, session_service=session_service)
+            editor_runner = Runner(agent=editor_agent, app_name=APP_NAME, session_service=session_service)
+            feedback_runner = Runner(agent=feedback_agent, app_name=APP_NAME, session_service=session_service)
+            improver_runner = Runner(agent=improver_agent, app_name=APP_NAME, session_service=session_service)
+            changelog_runner = Runner(agent=changelog_agent, app_name=APP_NAME, session_service=session_service)
+            
+            # STEP 1: Writer creates initial draft
+            print(f"  Step 1: Writing initial draft...")
+            changelog.append("#### Initial Draft\n\n")
+            
+            writer_request = f"""
+            Please write a complete article based on the following brief:
+            
+            {article_brief}
+            
+            ADDITIONAL CONTEXT:
+            - This is iteration {iteration+1} of the article
+            - Focus on creating engaging, informative content that follows the brief
+            - Maintain the "Mary Poppins-inspired" brand voice of MaryJobins
+            - Include proper headings, subheadings, and formatting
+            - Aim for the recommended word count in the brief
+            
+            Write the complete article now, ready for editing.
+            """
+            
+            writer_content = types.Content(role='user', parts=[types.Part(text=writer_request)])
+            draft_article = ""
+            
+            try:
+                async for event in writer_runner.run_async(
+                    user_id=USER_ID, 
+                    session_id=writer_session_id, 
+                    new_message=writer_content
+                ):
+                    if hasattr(event, 'is_final_response') and (
+                        (callable(event.is_final_response) and event.is_final_response()) or
+                        (not callable(event.is_final_response) and event.is_final_response)
+                    ):
+                        if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts') and event.content.parts:
+                            part = event.content.parts[0]
+                            if hasattr(part, 'text'):
+                                draft_article = part.text
+                                
+                # Save the draft
+                with open(os.path.join(output_article_dir, f"{iteration+1:02d}a_draft.md"), "w") as f:
+                    f.write(f"# Draft: {article_title} (Iteration {iteration+1})\n\n")
+                    f.write(draft_article)
+                
+                # Add to versions tracking
+                all_versions["drafts"].append(draft_article)
+                
+                # Add to changelog
+                changelog.append(f"**Word Count**: {len(draft_article.split())} words\n\n")
+                changelog.append("**Writer's Notes**:\n")
+                changelog.append("- Initial draft created based on the article brief\n")
+                changelog.append("- Focused on covering all key points from the brief\n")
+                changelog.append("- Incorporated the MaryJobins brand voice\n\n")
+                
+                print(f"    Draft article created: {len(draft_article.split())} words")
+            except Exception as e:
+                print(f"Error during writing phase: {str(e)}")
+                draft_article = f"Error creating draft for iteration {iteration+1}."
+                changelog.append(f"**Error during writing phase**: {str(e)}\n\n")
+                continue
+            
+            # STEP 2: Editor reviews and improves
+            print(f"  Step 2: Editing the draft...")
+            changelog.append("#### Editorial Improvements\n\n")
+            
+            editor_request = f"""
+            Please review and edit the following article draft to improve clarity, structure, and effectiveness:
+            
+            ARTICLE BRIEF:
+            {article_brief}
+            
+            ORIGINAL DRAFT:
+            {draft_article}
+            
+            EDITING GUIDELINES:
+            - Improve clarity, structure, and flow
+            - Enhance readability with better transitions
+            - Correct any grammatical or stylistic issues
+            - Ensure all key points from the brief are covered
+            - Verify that the tone matches the "Mary Poppins-inspired" brand voice
+            - Check that headers and subheaders are strategic
+            - Ensure calls-to-action are compelling and well-placed
+            
+            FORMAT YOUR RESPONSE AS:
+            
+            [CHANGELOG]
+            (List all changes made and why)
+            [/CHANGELOG]
+            
+            [EDITED ARTICLE]
+            (The complete edited article)
+            [/EDITED ARTICLE]
+            """
+            
+            editor_content = types.Content(role='user', parts=[types.Part(text=editor_request)])
+            edited_article = ""
+            editor_changes = ""
+            
+            try:
+                async for event in editor_runner.run_async(
+                    user_id=USER_ID, 
+                    session_id=editor_session_id, 
+                    new_message=editor_content
+                ):
+                    if hasattr(event, 'is_final_response') and (
+                        (callable(event.is_final_response) and event.is_final_response()) or
+                        (not callable(event.is_final_response) and event.is_final_response)
+                    ):
+                        if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts') and event.content.parts:
+                            part = event.content.parts[0]
+                            if hasattr(part, 'text'):
+                                editor_response = part.text
+                                
+                                # Extract changelog and edited article
+                                changelog_match = re.search(r'\[CHANGELOG\](.*?)\[\/CHANGELOG\]', editor_response, re.DOTALL)
+                                if changelog_match:
+                                    editor_changes = changelog_match.group(1).strip()
+                                
+                                article_match = re.search(r'\[EDITED ARTICLE\](.*?)\[\/EDITED ARTICLE\]', editor_response, re.DOTALL)
+                                if article_match:
+                                    edited_article = article_match.group(1).strip()
+                                else:
+                                    # If format not followed, use the whole response as the article
+                                    edited_article = editor_response
+                                
+                # Save the edited article
+                with open(os.path.join(output_article_dir, f"{iteration+1:02d}b_edited.md"), "w") as f:
+                    f.write(f"# Edited Article: {article_title} (Iteration {iteration+1})\n\n")
+                    f.write(edited_article)
+                
+                # Save editor's changelog
+                with open(os.path.join(output_article_dir, f"{iteration+1:02d}b_editor_changes.md"), "w") as f:
+                    f.write(f"# Editor's Changes: {article_title} (Iteration {iteration+1})\n\n")
+                    f.write(editor_changes)
+                
+                # Add to versions tracking
+                all_versions["edits"].append(edited_article)
+                
+                # Add to changelog
+                changelog.append(f"**Word Count After Editing**: {len(edited_article.split())} words\n\n")
+                changelog.append("**Editor's Changes**:\n")
+                changelog.append(editor_changes)
+                changelog.append("\n\n")
+                
+                print(f"    Edited article created: {len(edited_article.split())} words")
+            except Exception as e:
+                print(f"Error during editing phase: {str(e)}")
+                edited_article = draft_article  # Use the draft as fallback
+                changelog.append(f"**Error during editing phase**: {str(e)}\n\n")
+            
+            # STEP 3: Feedback analyst provides detailed feedback
+            print(f"  Step 3: Providing feedback...")
+            changelog.append("#### Content Analysis and Feedback\n\n")
+            
+            feedback_request = f"""
+            Please provide detailed, constructive feedback on the following article:
+            
+            ARTICLE BRIEF:
+            {article_brief}
+            
+            CURRENT ARTICLE (EDITED VERSION):
+            {edited_article}
+            
+            FEEDBACK GUIDELINES:
+            1. STRENGTHS ASSESSMENT:
+               - Identify what works well in the article
+               - Highlight particularly effective sections or examples
+            
+            2. IMPROVEMENT OPPORTUNITIES:
+               - Identify weaknesses or gaps in the content
+               - Point out sections that could be clearer or more engaging
+            
+            3. STRATEGIC RECOMMENDATIONS:
+               - Evaluate whether the content effectively supports business goals
+               - Assess if the article properly targets the intended audience
+            
+            4. SPECIFIC ACTION ITEMS:
+               - List 3-5 concrete, actionable changes that would most improve the article
+            
+            Please provide comprehensive feedback to help improve this article further.
+            """
+            
+            feedback_content = types.Content(role='user', parts=[types.Part(text=feedback_request)])
+            article_feedback = ""
+            
+            try:
+                async for event in feedback_runner.run_async(
+                    user_id=USER_ID, 
+                    session_id=feedback_session_id, 
+                    new_message=feedback_content
+                ):
+                    if hasattr(event, 'is_final_response') and (
+                        (callable(event.is_final_response) and event.is_final_response()) or
+                        (not callable(event.is_final_response) and event.is_final_response)
+                    ):
+                        if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts') and event.content.parts:
+                            part = event.content.parts[0]
+                            if hasattr(part, 'text'):
+                                article_feedback = part.text
+                                
+                # Save the feedback
+                with open(os.path.join(output_article_dir, f"{iteration+1:02d}c_feedback.md"), "w") as f:
+                    f.write(f"# Feedback: {article_title} (Iteration {iteration+1})\n\n")
+                    f.write(article_feedback)
+                
+                # Add to versions tracking
+                all_versions["feedback"].append(article_feedback)
+                
+                # Add to changelog
+                changelog.append("**Content Analyst Feedback**:\n")
+                changelog.append(article_feedback)
+                changelog.append("\n\n")
+                
+                print(f"    Feedback created: {len(article_feedback.split())} words")
+            except Exception as e:
+                print(f"Error during feedback phase: {str(e)}")
+                article_feedback = f"The article needs further improvement in clarity and structure."
+                changelog.append(f"**Error during feedback phase**: {str(e)}\n\n")
+            
+            # STEP 4: Improver makes final refinements
+            print(f"  Step 4: Making final improvements...")
+            changelog.append("#### Final Improvements\n\n")
+            
+            improver_request = f"""
+            Please make significant improvements to this article based on the feedback provided:
+            
+            ARTICLE BRIEF:
+            {article_brief}
+            
+            CURRENT ARTICLE (EDITED VERSION):
+            {edited_article}
+            
+            FEEDBACK AND SUGGESTIONS:
+            {article_feedback}
+            
+            IMPROVEMENT GUIDELINES:
+            - Implement all the suggestions from the feedback
+            - Make substantial improvements to structure, flow, and clarity
+            - Enhance the introduction and conclusion for maximum impact
+            - Improve transitions between sections
+            - Add compelling examples or statistics where appropriate
+            - Ensure headings and subheadings are optimized
+            - Strengthen calls-to-action
+            - Polish the overall tone to match the "Mary Poppins-inspired" brand voice
+            
+            FORMAT YOUR RESPONSE AS:
+            
+            [CHANGELOG]
+            (List all improvements made and how they address the feedback)
+            [/CHANGELOG]
+            
+            [IMPROVED ARTICLE]
+            (The complete improved article)
+            [/IMPROVED ARTICLE]
+            """
+            
+            improver_content = types.Content(role='user', parts=[types.Part(text=improver_request)])
+            improved_article = ""
+            improver_changes = ""
+            
+            try:
+                async for event in improver_runner.run_async(
+                    user_id=USER_ID, 
+                    session_id=improver_session_id, 
+                    new_message=improver_content
+                ):
+                    if hasattr(event, 'is_final_response') and (
+                        (callable(event.is_final_response) and event.is_final_response()) or
+                        (not callable(event.is_final_response) and event.is_final_response)
+                    ):
+                        if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts') and event.content.parts:
+                            part = event.content.parts[0]
+                            if hasattr(part, 'text'):
+                                improver_response = part.text
+                                
+                                # Extract changelog and improved article
+                                changelog_match = re.search(r'\[CHANGELOG\](.*?)\[\/CHANGELOG\]', improver_response, re.DOTALL)
+                                if changelog_match:
+                                    improver_changes = changelog_match.group(1).strip()
+                                
+                                article_match = re.search(r'\[IMPROVED ARTICLE\](.*?)\[\/IMPROVED ARTICLE\]', improver_response, re.DOTALL)
+                                if article_match:
+                                    improved_article = article_match.group(1).strip()
+                                else:
+                                    # If format not followed, use the whole response as the article
+                                    improved_article = improver_response
+                                
+                # Save the improved article
+                with open(os.path.join(output_article_dir, f"{iteration+1:02d}d_improved.md"), "w") as f:
+                    f.write(f"# Improved Article: {article_title} (Iteration {iteration+1})\n\n")
+                    f.write(improved_article)
+                
+                # Save improver's changelog
+                with open(os.path.join(output_article_dir, f"{iteration+1:02d}d_improver_changes.md"), "w") as f:
+                    f.write(f"# Improver's Changes: {article_title} (Iteration {iteration+1})\n\n")
+                    f.write(improver_changes)
+                
+                # Add to versions tracking
+                all_versions["improvements"].append(improved_article)
+                
+                # Add to changelog
+                changelog.append(f"**Word Count After Improvements**: {len(improved_article.split())} words\n\n")
+                changelog.append("**Improver's Changes**:\n")
+                changelog.append(improver_changes)
+                changelog.append("\n\n")
+                
+                print(f"    Improved article created: {len(improved_article.split())} words")
+            except Exception as e:
+                print(f"Error during improvement phase: {str(e)}")
+                improved_article = edited_article  # Use edited version as fallback
+                changelog.append(f"**Error during improvement phase**: {str(e)}\n\n")
+            
+            # Add a separator between iterations in the changelog
+            if iteration < num_iterations - 1:
+                changelog.append("\n---\n\n")
+        
+        # Create a final version comparison
+        print(f"  Creating overall changelog comparing first draft to final version...")
+        
+        final_article = all_versions["improvements"][-1] if all_versions["improvements"] else edited_article
+        first_draft = all_versions["drafts"][0] if all_versions["drafts"] else ""
+        
+        # Create a session for the final comparison
+        final_comparison_session_id = f"session_final_comparison_{article_dir}"
+        session_service.create_session(app_name=APP_NAME, user_id=USER_ID, session_id=final_comparison_session_id)
+        
+        final_comparison_request = f"""
+        Please create a comprehensive changelog comparing the initial draft to the final version of this article:
+        
+        ARTICLE TITLE: {article_title}
+        
+        INITIAL DRAFT:
+        {first_draft}
+        
+        FINAL VERSION:
+        {final_article}
+        
+        Please provide a detailed analysis of:
+        1. Overall transformation and quality improvement
+        2. Structure and organization changes
+        3. Content additions and enhancements
+        4. Tone and style refinements
+        5. SEO and keyword optimization
+        6. Call-to-action improvements
+        7. Brand alignment enhancements
+        
+        The changelog should be thorough, specific, and highlight the most significant improvements from draft to final version.
+        """
+        
+        final_comparison_content = types.Content(role='user', parts=[types.Part(text=final_comparison_request)])
+        overall_changelog = ""
+        
+        try:
+            async for event in changelog_runner.run_async(
+                user_id=USER_ID, 
+                session_id=final_comparison_session_id, 
+                new_message=final_comparison_content
+            ):
+                if hasattr(event, 'is_final_response') and (
+                    (callable(event.is_final_response) and event.is_final_response()) or
+                    (not callable(event.is_final_response) and event.is_final_response)
+                ):
+                    if hasattr(event, 'content') and event.content and hasattr(event.content, 'parts') and event.content.parts:
+                        part = event.content.parts[0]
+                        if hasattr(part, 'text'):
+                            overall_changelog = part.text
+                            
+            # Save the overall changelog
+            with open(os.path.join(output_article_dir, "overall_changelog.md"), "w") as f:
+                f.write(f"# Overall Changelog: {article_title}\n\n")
+                f.write(f"## Draft to Final Version Comparison\n\n")
+                f.write(overall_changelog)
+            
+            # Add to the main changelog
+            changelog.append("\n## Overall Transformation\n\n")
+            changelog.append(overall_changelog)
+            
+            print(f"    Overall changelog created: {len(overall_changelog.split())} words")
+        except Exception as e:
+            print(f"Error during overall changelog creation: {str(e)}")
+            
+        # Save the final version
+        with open(os.path.join(output_article_dir, "final_article.md"), "w") as f:
+            f.write(f"# Final Article: {article_title}\n\n")
+            f.write(final_article)
+        
+        # Save the complete changelog
+        with open(os.path.join(output_article_dir, "complete_changelog.md"), "w") as f:
+            f.write("\n".join(changelog))
+        
+        # Create a combined document with changelog and final article
+        with open(os.path.join(output_article_dir, "changelog_and_final_article.md"), "w") as f:
+            f.write(f"# {article_title}\n\n")
+            f.write("## Production Log and Final Article\n\n")
+            f.write("### Complete Changelog\n\n")
+            f.write("\n".join(changelog))
+            f.write("\n\n---\n\n")
+            f.write("### Final Article\n\n")
+            f.write(final_article)
+        
+        print(f"Completed all iterations for article: {article_title}")
+        print(f"Final article and complete changelog saved in: {output_article_dir}")
+    
+    # Create a summary file
+    summary_path = os.path.join(articles_directory, "00_articles_summary.md")
+    
+    with open(summary_path, "w") as f:
+        f.write("# MaryJobins Articles with Complete Change Logs\n\n")
+        f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        f.write("## Articles Created\n\n")
+        f.write("| # | Article | Iterations | Draft Word Count | Final Word Count | Files |\n")
+        f.write("|---|---------|------------|------------------|------------------|-------|\n")
+        
+        for i, article_dir in enumerate(selected_article_dirs):
+            # Extract article info
+            article_path = os.path.join(briefs_directory, article_dir)
+            brief_path = os.path.join(article_path, "00_brief.md")
+            
+            if not os.path.exists(brief_path):
+                continue
+                
+            # Read the brief to get title
+            with open(brief_path, 'r') as brief_file:
+                brief_content = brief_file.read()
+                title_match = re.search(r'#\s*Article:?\s*(.*?)(?:\n|$)', brief_content)
+                if title_match:
+                    article_title = title_match.group(1).strip()
+                else:
+                    article_title = article_dir.split('_', 1)[1].replace('_', ' ')
+            
+            # Create sanitized filename
+            article_filename = re.sub(r'[^\w\s-]', '', article_title).strip().replace(' ', '_')
+            
+            # Get paths for draft and final article
+            output_article_dir = os.path.join(articles_directory, f"{article_dir.split('_')[0]}_{article_filename}")
+            draft_path = os.path.join(output_article_dir, "01a_draft.md")
+            final_path = os.path.join(output_article_dir, "final_article.md")
+            
+            draft_word_count = 0
+            final_word_count = 0
+            
+            if os.path.exists(draft_path):
+                with open(draft_path, 'r') as draft_file:
+                    draft_content = draft_file.read()
+                    draft_word_count = len(draft_content.split())
+            
+            if os.path.exists(final_path):
+                with open(final_path, 'r') as final_file:
+                    final_content = final_file.read()
+                    final_word_count = len(final_content.split())
+            
+            changelog_link = f"[Changelog](./{article_dir.split('_')[0]}_{article_filename}/complete_changelog.md)"
+            final_link = f"[Final](./{article_dir.split('_')[0]}_{article_filename}/final_article.md)"
+            combined_link = f"[Combined](./{article_dir.split('_')[0]}_{article_filename}/changelog_and_final_article.md)"
+            
+            f.write(f"| {i+1} | {article_title} | {num_iterations} | {draft_word_count} | {final_word_count} | {changelog_link} • {final_link} • {combined_link} |\n")
+        
+        f.write("\n## Process Description\n\n")
+        f.write("Each article went through the following process:\n\n")
+        f.write("1. **Initial Draft**: Written based on the article brief\n")
+        f.write("2. **Editing**: Refined for clarity, structure, and effectiveness with detailed changelog\n")
+        f.write("3. **Feedback**: Detailed analysis and improvement suggestions\n")
+        f.write("4. **Improvement**: Final refinements based on feedback with detailed changelog\n")
+        f.write("5. **Overall Changelog**: Comprehensive comparison from first draft to final version\n\n")
+        
+        f.write(f"This process was repeated {num_iterations} times for each article to ensure high quality content.\n")
+        
+        f.write("\n## Article Categories\n\n")
+        
+        # Count categories
+        categories = {}
+        for article_dir in selected_article_dirs:
+            article_path = os.path.join(briefs_directory, article_dir)
+            brief_path = os.path.join(article_path, "00_brief.md")
+            if os.path.exists(brief_path):
+                with open(brief_path, 'r') as brief_file:
+                    brief_content = brief_file.read()
+                    category_match = re.search(r'##\s*Category:?\s*(.*?)(?:\n|$)', brief_content)
+                    if category_match:
+                        category = category_match.group(1).strip()
+                        if category in categories:
+                            categories[category] += 1
+                        else:
+                            categories[category] = 1
+        
+        for category, count in categories.items():
+            f.write(f"- **{category}**: {count} articles\n")
+        
+        f.write("\n## Documentation Files\n\n")
+        f.write("Each article directory contains:\n\n")
+        f.write("- **Brief**: The original article brief\n")
+        f.write("- **Draft and Edited Versions**: All iterations of the article\n")
+        f.write("- **Feedback Documents**: Detailed feedback for each iteration\n")
+        f.write("- **Change Logs**: Specific changes made in each iteration\n")
+        f.write("- **Final Article**: The completed, polished article\n")
+        f.write("- **Combined Document**: Complete changelog with final article\n")
+    
+    print(f"\nArticle production process completed!")
+    print(f"Processed {len(selected_article_dirs)} articles with {num_iterations} iterations each")
+    print(f"All articles with complete change logs available in: {articles_directory}")
+    print(f"Summary file created: {summary_path}")
+    
+    return {
+        "status": "completed",
+        "articles_directory": articles_directory,
+        "articles_created": len(selected_article_dirs),
+        "iterations_per_article": num_iterations,
+        "summary_file": summary_path
+    }
+
+# Execute the article production process
+print("Starting article production from processed briefs...")
+articles_result = await produce_articles_from_processed_briefs()
+
+if articles_result and articles_result["status"] == "completed":
+    print("\n" + "=" * 70)
+    print("MARYJOBINS ARTICLE PRODUCTION COMPLETED")
+    print("=" * 70)
+    print(f"\nCreated {articles_result['articles_created']} complete articles")
+    print(f"Each article went through {articles_result['iterations_per_article']} iterations")
+    print(f"All articles with detailed change logs are available in: {articles_result['articles_directory']}")
+    print(f"Summary file: {articles_result['summary_file']}")
+else:
+    print("\nArticle production failed or was incomplete.")
