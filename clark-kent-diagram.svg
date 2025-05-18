@@ -1,0 +1,89 @@
+<svg viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background and Title -->
+  <rect width="800" height="900" fill="#f8f9fa" rx="10" ry="10" />
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="#1a73e8">Clark Kent Multi-Agent Editorial System</text>
+  <text x="400" y="70" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#5f6368">Content Production Pipeline</text>
+
+  <!-- Start node -->
+  <circle cx="400" cy="120" r="30" fill="#1a73e8" />
+  <text x="400" y="125" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="white">Start</text>
+  
+  <!-- Article Brief -->
+  <rect x="300" y="180" width="200" height="60" rx="5" ry="5" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2" />
+  <text x="400" y="215" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#1a73e8">Article Brief</text>
+  
+  <!-- Manager section -->
+  <rect x="200" y="280" width="400" height="100" rx="5" ry="5" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" />
+  <text x="400" y="310" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#1a73e8">Manager (Coordinator) Agent</text>
+  <text x="400" y="340" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#5f6368">- Analyzes brief requirements</text>
+  <text x="400" y="360" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#5f6368">- Coordinates specialized agent workflow</text>
+  
+  <!-- Connecting lines -->
+  <line x1="400" y1="150" x2="400" y2="180" stroke="#1a73e8" stroke-width="2" />
+  <line x1="400" y1="240" x2="400" y2="280" stroke="#1a73e8" stroke-width="2" />
+  
+  <!-- Agent workflow box -->
+  <rect x="100" y="420" width="600" height="320" rx="5" ry="5" fill="#e8f0fe" stroke="#1a73e8" stroke-width="2" />
+  
+  <!-- Researcher Agent -->
+  <rect x="125" y="440" width="250" height="80" rx="5" ry="5" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2" />
+  <text x="250" y="470" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1a73e8">Researcher Agent</text>
+  <text x="250" y="495" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Gathers relevant information</text>
+  <text x="250" y="515" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Compiles research materials</text>
+  
+  <!-- Writer Agent -->
+  <rect x="425" y="440" width="250" height="80" rx="5" ry="5" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2" />
+  <text x="550" y="470" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1a73e8">Writer Agent</text>
+  <text x="550" y="495" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Creates initial draft</text>
+  <text x="550" y="515" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Focuses on structure and narrative</text>
+  
+  <!-- Editor Agent -->
+  <rect x="125" y="540" width="250" height="80" rx="5" ry="5" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2" />
+  <text x="250" y="570" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1a73e8">Editor Agent</text>
+  <text x="250" y="595" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Improves clarity and style</text>
+  <text x="250" y="615" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Enhances readability and engagement</text>
+  
+  <!-- Fact-Checker Agent -->
+  <rect x="425" y="540" width="250" height="80" rx="5" ry="5" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2" />
+  <text x="550" y="570" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#1a73e8">Fact-Checker Agent</text>
+  <text x="550" y="595" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Verifies accuracy</text>
+  <text x="550" y="615" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#5f6368">- Ensures factual integrity</text>
+  
+  <!-- Multi-iteration feedback loop -->
+  <rect x="125" y="640" width="550" height="80" rx="5" ry="5" fill="#d7f8e8" stroke="#0d652d" stroke-width="2" />
+  <text x="400" y="670" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#0d652d">Multiple Iterations (2+)</text>
+  <text x="400" y="695" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#0d652d">- Feedback loop between all agents</text>
+  <text x="400" y="715" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#0d652d">- Each iteration improves content quality</text>
+  
+  <!-- Connecting lines -->
+  <line x1="400" y1="380" x2="400" y2="420" stroke="#1a73e8" stroke-width="2" />
+  
+  <!-- Workflow arrows -->
+  <line x1="250" y1="520" x2="250" y2="540" stroke="#1a73e8" stroke-width="2" stroke-dasharray="5,5" />
+  <line x1="550" y1="520" x2="550" y2="540" stroke="#1a73e8" stroke-width="2" stroke-dasharray="5,5" />
+  
+  <line x1="250" y1="440" x2="250" y2="420" stroke="#1a73e8" stroke-width="2" />
+  <line x1="550" y1="440" x2="550" y2="420" stroke="#1a73e8" stroke-width="2" />
+  
+  <line x1="250" y1="420" x2="550" y2="420" stroke="#1a73e8" stroke-width="2" />
+  
+  <!-- Final output section -->
+  <rect x="200" y="780" width="400" height="60" rx="5" ry="5" fill="#c8e6c9" stroke="#0d652d" stroke-width="2" />
+  <text x="400" y="815" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="#0d652d">Final Polished Article with Changelogs</text>
+  
+  <!-- Connect to final output -->
+  <line x1="400" y1="740" x2="400" y2="780" stroke="#0d652d" stroke-width="2" />
+  
+  <!-- Legend -->
+  <rect x="20" y="850" width="15" height="15" fill="#1a73e8" />
+  <text x="45" y="863" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">Process Step</text>
+  
+  <rect x="120" y="850" width="15" height="15" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2" />
+  <text x="145" y="863" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">Agent Activity</text>
+  
+  <rect x="250" y="850" width="15" height="15" fill="#d7f8e8" stroke="#0d652d" stroke-width="2" />
+  <text x="275" y="863" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">Feedback Loop</text>
+  
+  <rect x="380" y="850" width="15" height="15" fill="#c8e6c9" stroke="#0d652d" stroke-width="2" />
+  <text x="405" y="863" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">Final Output</text>
+</svg>
